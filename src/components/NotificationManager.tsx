@@ -4,7 +4,6 @@ import UniversalModal from './UniversalModal';
 import { X, Clock, Bell, Trash2, Plus, Calendar } from 'lucide-react-native';
 import { theme } from '../constants/theme';
 import { useHabitStore, ReminderConfig } from '../store/useHabitStore';
-import PremiumModal from './PremiumModal';
 
 interface NotificationManagerProps {
     visible: boolean;
@@ -12,31 +11,15 @@ interface NotificationManagerProps {
 }
 
 export default function NotificationManager({ visible, onClose }: NotificationManagerProps) {
-    const { habits, reminders, addReminder, removeReminder, updateReminder, isPremium, notificationSettings, toggleSmartReminders } = useHabitStore();
+    const { habits, reminders, addReminder, removeReminder, updateReminder, notificationSettings, toggleSmartReminders } = useHabitStore();
     const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
-    const [premiumModalVisible, setPremiumModalVisible] = useState(false);
+
 
     // Editing State
     const [editingReminder, setEditingReminder] = useState<Partial<ReminderConfig> | null>(null);
     const [showEditModal, setShowEditModal] = useState(false);
 
     const handleAddReminder = (habitId: string) => {
-        const habitReminders = reminders[habitId] || [];
-
-        // Free User Limit: 1 reminder per habit
-        if (!isPremium && habitReminders.length >= 1) {
-            Alert.alert(
-                "Premium Feature",
-                "Free users can only set 1 reminder per habit. Upgrade to send multiple reminders!",
-                [
-                    { text: "Cancel", style: "cancel" },
-                    { text: "Upgrade", onPress: () => setPremiumModalVisible(true) }
-                ],
-                { cancelable: true }
-            );
-            return;
-        }
-
         setSelectedHabitId(habitId);
         setEditingReminder({
             time: '09:00',
@@ -91,25 +74,18 @@ export default function NotificationManager({ visible, onClose }: NotificationMa
                 </View>
 
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-                    {/* Global Settings */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Global Settings</Text>
                         <View style={styles.settingRow}>
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.settingLabel}>Smart Context Reminders</Text>
                                 <Text style={styles.settingDesc}>
-                                    {isPremium ? "Adapts message based on your streak and time of day." : "Upgrade to enable AI-driven motivational alerts."}
+                                    Adapts message based on your streak and time of day.
                                 </Text>
                             </View>
                             <Switch
                                 value={notificationSettings.smartReminders}
-                                onValueChange={(val) => {
-                                    if (isPremium) {
-                                        toggleSmartReminders();
-                                    } else {
-                                        setPremiumModalVisible(true);
-                                    }
-                                }}
+                                onValueChange={() => toggleSmartReminders()}
                                 trackColor={{ false: '#e2e8f0', true: theme.colors.primary }}
                             />
                         </View>
@@ -233,11 +209,6 @@ export default function NotificationManager({ visible, onClose }: NotificationMa
                         </View>
                     </View>
                 </UniversalModal>
-
-                <PremiumModal
-                    visible={premiumModalVisible}
-                    onClose={() => setPremiumModalVisible(false)}
-                />
             </View>
         </UniversalModal>
     );

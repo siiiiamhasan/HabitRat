@@ -153,7 +153,7 @@ export default function AnalyticsModal({ visible, onClose }: AnalyticsModalProps
                             </View>
                             <View style={styles.statDivider} />
                             <View style={styles.statBox}>
-                                <Text style={styles.statValue}>{useHabitStore.getState().getMonthlySuccessRate(selectedDate)}%</Text>
+                                <Text style={styles.statValue}>{useHabitStore.getState().getMonthlySuccessRate(selectedDate).toFixed(2)}%</Text>
                                 <Text style={styles.statLabel}>Success Rate</Text>
                             </View>
                         </View>

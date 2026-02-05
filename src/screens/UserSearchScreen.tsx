@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, FlatList, Image, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Search, UserPlus, Check } from 'lucide-react-native';
+import { ArrowLeft, Search, UserPlus, Users } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { theme } from '../constants/theme';
-import { supabase } from '../lib/supabase';
 import { useHabitStore } from '../store/useHabitStore';
 
 interface SearchUser {
@@ -15,71 +14,27 @@ interface SearchUser {
     is_following?: boolean;
 }
 
+
+
 export default function UserSearchScreen() {
     const navigation = useNavigation();
-    const { followUser, unfollowUser, session } = useHabitStore();
+    const { followUser, unfollowUser } = useHabitStore();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<SearchUser[]>([]);
-    const [loading, setLoading] = useState(false);
 
-    const handleSearch = async () => {
-        if (!query.trim()) return;
-        setLoading(true);
-
-        try {
-            // 1. Search Users
-            const { data: users, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .ilike('username', `%${query}%`)
-                .neq('id', session?.user.id) // Exclude self
-                .limit(20);
-
-            if (error) throw error;
-
-            // 2. Check if already following
-            // We need to fetch 'social_follows' where flower_id = me AND following_id IN (found users)
-            if (users && users.length > 0) {
-                const userIds = users.map(u => u.id);
-                const { data: follows } = await supabase
-                    .from('social_follows')
-                    .select('following_id')
-                    .eq('flower_id', session?.user.id)
-                    .in('following_id', userIds);
-
-                const followingSet = new Set(follows?.map(f => f.following_id));
-
-                const mappedResults = users.map(u => ({
-                    ...u,
-                    is_following: followingSet.has(u.id)
-                }));
-                setResults(mappedResults);
-            } else {
-                setResults([]);
-            }
-
-        } catch (error) {
-            console.error("Search error:", error);
-        } finally {
-            setLoading(false);
-        }
+    const handleSearch = () => {
+        // No mock users - search functionality can be connected to real API later
+        setResults([]);
     };
 
     const toggleFollow = async (user: SearchUser) => {
-        // Optimistic update
         const isFollowing = user.is_following;
         setResults(prev => prev.map(u => u.id === user.id ? { ...u, is_following: !isFollowing } : u));
 
-        let success;
         if (isFollowing) {
-            success = await unfollowUser(user.id);
+            await unfollowUser(user.id);
         } else {
-            success = await followUser(user.id);
-        }
-
-        if (!success) {
-            // Revert
-            setResults(prev => prev.map(u => u.id === user.id ? { ...u, is_following: isFollowing } : u));
+            await followUser(user.id);
         }
     };
 
@@ -129,21 +84,27 @@ export default function UserSearchScreen() {
                 </View>
             </View>
 
-            {loading ? (
-                <View style={styles.center}>
-                    <ActivityIndicator size="large" color={theme.colors.primary} />
-                </View>
-            ) : (
-                <FlatList
-                    data={results}
-                    renderItem={renderItem}
-                    keyExtractor={item => item.id}
-                    contentContainerStyle={styles.list}
-                    ListEmptyComponent={
-                        query ? <Text style={styles.emptyText}>No users found</Text> : null
-                    }
-                />
-            )}
+            <FlatList
+                data={results}
+                renderItem={renderItem}
+                keyExtractor={item => item.id}
+                contentContainerStyle={styles.list}
+                ListEmptyComponent={
+                    query ? (
+                        <View style={styles.emptyContainer}>
+                            <Users size={48} color={theme.colors.textSecondary} />
+                            <Text style={styles.emptyText}>No users found</Text>
+                            <Text style={styles.emptySubtext}>Try a different search term</Text>
+                        </View>
+                    ) : (
+                        <View style={styles.emptyContainer}>
+                            <Search size={48} color={theme.colors.textSecondary} />
+                            <Text style={styles.emptyText}>Find Friends</Text>
+                            <Text style={styles.emptySubtext}>Search for users to follow</Text>
+                        </View>
+                    )
+                }
+            />
         </SafeAreaView>
     );
 }
@@ -182,6 +143,7 @@ const styles = StyleSheet.create({
     },
     list: {
         padding: 16,
+        flexGrow: 1,
     },
     userRow: {
         flexDirection: 'row',
@@ -237,14 +199,21 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         fontSize: 13,
     },
-    center: {
+    emptyContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        paddingTop: 80,
     },
     emptyText: {
-        textAlign: 'center',
+        fontSize: 18,
+        fontWeight: '600',
+        color: theme.colors.text,
+        marginTop: 16,
+    },
+    emptySubtext: {
+        fontSize: 14,
         color: theme.colors.textSecondary,
-        marginTop: 40,
-    }
+        marginTop: 4,
+    },
 });

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { MessageCircle, Plus, UserPlus } from 'lucide-react-native';
+import { MessageCircle, Plus, UserPlus, Users } from 'lucide-react-native';
 import { theme } from '../constants/theme';
 import { useHabitStore, Chat } from '../store/useHabitStore';
 import { format } from 'date-fns';
@@ -13,15 +13,8 @@ export default function InboxScreen() {
     const { chats, addChat } = useHabitStore();
     const [addModalVisible, setAddModalVisible] = useState(false);
 
-    // Mock Users needed for "Add Friend" flow
-    const MOCK_USERS = [
-        { id: 'u1', name: 'Alice Chen', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' },
-        { id: 'u2', name: 'Bob Smith', avatar: 'https://randomuser.me/api/portraits/men/22.jpg' },
-        { id: 'u3', name: 'Charlie Kim', avatar: 'https://randomuser.me/api/portraits/men/33.jpg' },
-        { id: 'u4', name: 'Diana Prince', avatar: 'https://randomuser.me/api/portraits/women/45.jpg' },
-    ];
-
-    const handleAddChat = (user: typeof MOCK_USERS[0]) => {
+    // Add friend functionality - to be connected to real API
+    const handleAddChat = (user: { id: string; name: string; avatar: string }) => {
         addChat(user);
         setAddModalVisible(false);
         // Navigate immediately
@@ -96,17 +89,11 @@ export default function InboxScreen() {
                     <Text style={styles.modalTitle}>Add Friend</Text>
                     <Text style={styles.modalSubtitle}>Suggested People</Text>
 
-                    {MOCK_USERS.map(user => (
-                        <TouchableOpacity
-                            key={user.id}
-                            style={styles.userRow}
-                            onPress={() => handleAddChat(user)}
-                        >
-                            <Image source={{ uri: user.avatar }} style={styles.modalAvatar} />
-                            <Text style={styles.userName}>{user.name}</Text>
-                            <Plus size={20} color={theme.colors.primary} />
-                        </TouchableOpacity>
-                    ))}
+                    <View style={styles.emptyModalState}>
+                        <Users size={40} color={theme.colors.textSecondary} />
+                        <Text style={styles.emptyModalText}>Friend search coming soon!</Text>
+                        <Text style={styles.emptyModalSubtext}>Connect with real users to start chatting.</Text>
+                    </View>
 
                     <TouchableOpacity style={styles.closeButton} onPress={() => setAddModalVisible(false)}>
                         <Text style={styles.closeText}>Cancel</Text>
@@ -299,5 +286,21 @@ const styles = StyleSheet.create({
     closeText: {
         color: theme.colors.textSecondary,
         fontSize: 16,
-    }
+    },
+    emptyModalState: {
+        alignItems: 'center',
+        paddingVertical: 24,
+    },
+    emptyModalText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: theme.colors.text,
+        marginTop: 12,
+    },
+    emptyModalSubtext: {
+        fontSize: 14,
+        color: theme.colors.textSecondary,
+        marginTop: 4,
+        textAlign: 'center',
+    },
 });

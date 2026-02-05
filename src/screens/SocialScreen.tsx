@@ -20,16 +20,11 @@ interface FeedItem {
     type: 'progress';
 }
 
-// Dummy Data
-const INITIAL_FEED: FeedItem[] = [
-    { id: '1', user: 'Alex Chen', avatar: 'https://randomuser.me/api/portraits/men/32.jpg', action: 'completed', habit: 'Morning Run 5k', timestamp: '2h ago', likes: 12, liked: false, type: 'progress' },
-    { id: '2', user: 'Sarah Jones', avatar: 'https://randomuser.me/api/portraits/women/44.jpg', action: 'reached streak', habit: 'Meditation (10 days)', timestamp: '4h ago', likes: 25, liked: true, type: 'progress' },
-    { id: '3', user: 'Mike Ross', avatar: 'https://randomuser.me/api/portraits/men/85.jpg', action: 'completed', habit: 'Read 30 pages', timestamp: '5h ago', likes: 8, liked: false, type: 'progress' },
-];
+
 
 export default function SocialScreen() {
     const [activeTab, setActiveTab] = useState<'feed' | 'challenges' | 'trends'>('feed');
-    const [feed, setFeed] = useState<FeedItem[]>(INITIAL_FEED);
+    const [feed, setFeed] = useState<FeedItem[]>([]);
     const { challenges, fetchChallenges, joinChallenge, createChallenge, user } = useHabitStore();
     const [searchQuery, setSearchQuery] = useState('');
 

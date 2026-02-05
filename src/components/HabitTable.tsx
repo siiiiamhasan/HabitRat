@@ -4,16 +4,15 @@ import { useHabitStore, Habit } from '../store/useHabitStore';
 import { format, subDays, isSameDay, isBefore, startOfDay } from 'date-fns';
 import { Check, Plus } from 'lucide-react-native';
 import { theme } from '../constants/theme';
-import PremiumModal from './PremiumModal';
 import StreakPopup from './StreakPopup';
 
 import UniversalModal from './UniversalModal';
 
 export default function HabitTable() {
-    const { habits, addHabit, updateHabit, removeHabit, toggleHabit, getHabitStatus, logs, createNewLog, isPremium, checkStreak, setShowStreakPopup, diamonds, spendDiamonds } = useHabitStore();
+    const { habits, addHabit, updateHabit, removeHabit, toggleHabit, getHabitStatus, logs, createNewLog, checkStreak, setShowStreakPopup, diamonds, spendDiamonds } = useHabitStore();
 
     const [modalVisible, setModalVisible] = useState(false);
-    const [premiumModalVisible, setPremiumModalVisible] = useState(false);
+
 
     // Form State
     const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
@@ -140,21 +139,7 @@ export default function HabitTable() {
         if (editingHabitId) {
             updateHabit({ ...habitData, id: editingHabitId });
         } else {
-            const success = addHabit(habitData);
-            if (!success) {
-                // Close the modal first so the Alert/PremiumModal is visible
-                setModalVisible(false);
-                Alert.alert(
-                    "Limit Reached",
-                    "Free users can only track up to 12 habits. Upgrade to Premium for unlimited habits!",
-                    [
-                        { text: "Cancel", style: "cancel" },
-                        { text: "Upgrade", onPress: () => setPremiumModalVisible(true) }
-                    ],
-                    { cancelable: true }
-                );
-                return;
-            }
+            addHabit(habitData);
         }
 
         setModalVisible(false);
@@ -313,10 +298,6 @@ export default function HabitTable() {
                 </View>
             </UniversalModal>
 
-            <PremiumModal
-                visible={premiumModalVisible}
-                onClose={() => setPremiumModalVisible(false)}
-            />
             <StreakPopup />
         </View>
     );

@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Users } from 'lucide-react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { theme } from '../constants/theme';
-import { supabase } from '../lib/supabase';
-import { useHabitStore } from '../store/useHabitStore';
 
 type RouteParams = {
     UserList: { type: 'following' | 'followers', userId: string };
@@ -18,52 +16,25 @@ interface ListUser {
     avatar_url: string;
 }
 
+// Mock data for local functionality
+const MOCK_FOLLOWING: ListUser[] = [
+    { id: '1', username: '@habit_master', full_name: 'Sarah Chen', avatar_url: 'https://randomuser.me/api/portraits/women/44.jpg' },
+    { id: '2', username: '@goal_getter', full_name: 'James Brown', avatar_url: 'https://randomuser.me/api/portraits/men/56.jpg' },
+];
+
+const MOCK_FOLLOWERS: ListUser[] = [
+    { id: '3', username: '@daily_achiever', full_name: 'Mike Williams', avatar_url: 'https://randomuser.me/api/portraits/men/22.jpg' },
+    { id: '4', username: '@wellness_warrior', full_name: 'Emma Davis', avatar_url: 'https://randomuser.me/api/portraits/women/28.jpg' },
+    { id: '5', username: '@productivity_pro', full_name: 'Alex Johnson', avatar_url: 'https://randomuser.me/api/portraits/men/32.jpg' },
+];
+
 export default function UserListScreen() {
     const navigation = useNavigation();
     const route = useRoute<RouteProp<RouteParams, 'UserList'>>();
-    const { type, userId } = route.params;
-    const { followUser, unfollowUser, session } = useHabitStore();
+    const { type } = route.params;
 
-    const [users, setUsers] = useState<ListUser[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        fetchUsers();
-    }, [type, userId]);
-
-    const fetchUsers = async () => {
-        setLoading(true);
-        try {
-            let data;
-
-            if (type === 'following') {
-                // Get people I am following
-                const { data: follows, error } = await supabase
-                    .from('social_follows')
-                    .select('following_id, profiles:following_id(*)') // join profiles
-                    .eq('flower_id', userId);
-
-                if (error) throw error;
-                // Supabase returns nested object, map it
-                data = follows?.map((f: any) => f.profiles) || [];
-            } else {
-                // Get people following me
-                const { data: followers, error } = await supabase
-                    .from('social_follows')
-                    .select('flower_id, profiles:flower_id(*)')
-                    .eq('following_id', userId);
-
-                if (error) throw error;
-                data = followers?.map((f: any) => f.profiles) || [];
-            }
-
-            setUsers(data as ListUser[]);
-        } catch (error) {
-            console.error("Fetch list error:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Use mock data based on type
+    const users = type === 'following' ? MOCK_FOLLOWING : MOCK_FOLLOWERS;
 
     const renderItem = ({ item }: { item: ListUser }) => (
         <View style={styles.userRow}>
@@ -87,21 +58,20 @@ export default function UserListScreen() {
                 <Text style={styles.headerTitle}>{type === 'following' ? 'Following' : 'Followers'}</Text>
             </View>
 
-            {loading ? (
-                <View style={styles.center}>
-                    <ActivityIndicator size="large" color={theme.colors.primary} />
-                </View>
-            ) : (
-                <FlatList
-                    data={users}
-                    renderItem={renderItem}
-                    keyExtractor={item => item.id}
-                    contentContainerStyle={styles.list}
-                    ListEmptyComponent={
-                        <Text style={styles.emptyText}>No users found.</Text>
-                    }
-                />
-            )}
+            <FlatList
+                data={users}
+                renderItem={renderItem}
+                keyExtractor={item => item.id}
+                contentContainerStyle={styles.list}
+                ListEmptyComponent={
+                    <View style={styles.emptyContainer}>
+                        <Users size={48} color={theme.colors.textSecondary} />
+                        <Text style={styles.emptyText}>
+                            {type === 'following' ? 'Not following anyone yet' : 'No followers yet'}
+                        </Text>
+                    </View>
+                }
+            />
         </SafeAreaView>
     );
 }
@@ -130,6 +100,7 @@ const styles = StyleSheet.create({
     },
     list: {
         padding: 16,
+        flexGrow: 1,
     },
     userRow: {
         flexDirection: 'row',
@@ -163,14 +134,16 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: theme.colors.textSecondary,
     },
-    center: {
+    emptyContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        paddingTop: 80,
     },
     emptyText: {
         textAlign: 'center',
         color: theme.colors.textSecondary,
-        marginTop: 40,
+        marginTop: 16,
+        fontSize: 16,
     }
 });

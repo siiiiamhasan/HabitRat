@@ -9,16 +9,16 @@ import { useHabitStore } from '../store/useHabitStore';
 import Heatmap from '../components/Heatmap';
 import NotificationManager from '../components/NotificationManager';
 import { useTranslation, LANGUAGES, Language } from '../utils/i18n';
-import PremiumModal from '../components/PremiumModal';
+
 import UniversalModal from '../components/UniversalModal';
 import RateAppModal from '../components/RateAppModal';
 
 export default function ProfileScreen() {
-    const { user, updateUser, getCurrentStreak, isPremium, setPremium, populateDummyData, watchAd, adsWatchedToday, fetchSocialProfile, setLanguage } = useHabitStore();
+    const { user, updateUser, getCurrentStreak, populateDummyData, fetchSocialProfile, setLanguage } = useHabitStore();
     const { t, language } = useTranslation();
     const navigation = useNavigation();
 
-    // Fetch social data on mount/focus
+    // Fetch social on mount/focus
     React.useEffect(() => {
         fetchSocialProfile();
     }, []);
@@ -30,7 +30,7 @@ export default function ProfileScreen() {
     const [editValue, setEditValue] = useState('');
     const [analyticsVisible, setAnalyticsVisible] = useState(false);
     const [notificationsVisible, setNotificationsVisible] = useState(false);
-    const [premiumModalVisible, setPremiumModalVisible] = useState(false);
+
     const [languageModalVisible, setLanguageModalVisible] = useState(false);
     const [rateModalVisible, setRateModalVisible] = useState(false);
 
@@ -67,11 +67,7 @@ export default function ProfileScreen() {
     };
 
     const handleOpenAnalytics = () => {
-        if (isPremium) {
-            setAnalyticsVisible(true);
-        } else {
-            setPremiumModalVisible(true);
-        }
+        setAnalyticsVisible(true);
     };
 
     return (
@@ -120,54 +116,7 @@ export default function ProfileScreen() {
                     <View style={styles.divider} />
                 </View>
 
-                {/* Earn Diamonds (Non-Premium) */}
-                {!isPremium && (
-                    <View style={styles.card}>
-                        <View style={{ padding: 16 }}>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                                <Text style={styles.sectionHeader}>{t('section.earn')}</Text>
-                                <Text style={{ color: theme.colors.textSecondary, fontSize: 13 }}>{adsWatchedToday}/5 today</Text>
-                            </View>
 
-                            <TouchableOpacity
-                                style={[styles.adButton, adsWatchedToday >= 5 && styles.adButtonDisabled]}
-                                onPress={async () => {
-                                    if (adsWatchedToday >= 5) return;
-                                    Alert.alert("Watch Ad", "Watching ad...", [], { cancelable: false });
-                                    const success = await watchAd();
-                                    if (success) {
-                                        Alert.alert("Reward", "You earned 4 Diamonds! 💎", [{ text: "OK" }], { cancelable: true });
-                                    } else {
-                                        Alert.alert("Limit Reached", "You have reached your daily limit.", [{ text: "OK" }], { cancelable: true });
-                                    }
-                                }}
-                                disabled={adsWatchedToday >= 5}
-                            >
-                                <PlayCircle size={20} color={adsWatchedToday >= 5 ? "#A0AEC0" : "white"} />
-                                <Text style={[styles.adButtonText, adsWatchedToday >= 5 && { color: "#A0AEC0" }]}>
-                                    {adsWatchedToday >= 5 ? "Daily Limit Reached" : `${t('btn.watch_ad')} (+4 💎)`}
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                )}
-                {!isPremium && (
-                    <View style={styles.upgradeCard}>
-                        <View style={{ gap: 8, flex: 1 }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                <Crown size={22} color="white" strokeWidth={2.5} />
-                                <Text style={styles.upgradeTitle}>Upgrade to Prime</Text>
-                            </View>
-                            <Text style={styles.upgradeDesc}>Advanced repeating habits, data backup, colors and more</Text>
-
-                            <TouchableOpacity style={styles.upgradeButton} onPress={() => setPremiumModalVisible(true)}>
-                                <Text style={styles.upgradeButtonText}>Upgrade</Text>
-                            </TouchableOpacity>
-                        </View>
-                        {/* Decorative circle overlay */}
-                        <View style={styles.decorativeCircle} />
-                    </View>
-                )}
 
                 {/* Account Section */}
                 <Text style={styles.sectionHeader}>{t('section.account')}</Text>
@@ -181,7 +130,6 @@ export default function ProfileScreen() {
                         icon={BarChart3}
                         label="Advanced Analytics"
                         onPress={handleOpenAnalytics}
-                        value={!isPremium ? 'Premium' : ''}
                     />
                     <SettingsItem
                         icon={Globe}
@@ -192,10 +140,6 @@ export default function ProfileScreen() {
                     <MenuItem icon={Database} label={t('menu.seed_data')} last onPress={() => {
                         populateDummyData();
                         Alert.alert("Success", "Dummy data populated for past 14 days!", [{ text: "OK" }], { cancelable: true });
-                    }} />
-                    <MenuItem icon={Crown} label="Reset to Free (Dev)" onPress={() => {
-                        setPremium(false);
-                        Alert.alert("Success", "You are now a Free user.", [{ text: "OK" }], { cancelable: true });
                     }} />
                 </View>
 
@@ -230,7 +174,7 @@ export default function ProfileScreen() {
                             <Text style={styles.statLabel}>{t('stats.habits')}</Text>
                         </View>
                         <View style={styles.statItem}>
-                            <Text style={styles.statValue}>{useHabitStore.getState().getOverallSuccessRate()}%</Text>
+                            <Text style={styles.statValue}>{useHabitStore.getState().getOverallSuccessRate().toFixed(2)}%</Text>
                             <Text style={styles.statLabel}>{t('stats.success')}</Text>
                         </View>
                         <View style={styles.statItem}>
@@ -244,7 +188,6 @@ export default function ProfileScreen() {
             {/* Modals */}
             <AnalyticsModal visible={analyticsVisible} onClose={() => setAnalyticsVisible(false)} />
             <NotificationManager visible={notificationsVisible} onClose={() => setNotificationsVisible(false)} />
-            <PremiumModal visible={premiumModalVisible} onClose={() => setPremiumModalVisible(false)} />
             <RateAppModal visible={rateModalVisible} onClose={() => setRateModalVisible(false)} />
 
             {/* Revised Edit Modal */}
