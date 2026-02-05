@@ -1,11 +1,12 @@
 {
   "expo": {
-    "name": "sPanda",
-    "slug": "sPanda",
+    "name": "HabitRat",
+    "slug": "HabitRat",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "habitrat",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -16,14 +17,20 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.habitrat.app",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "@react-native-google-signin/google-signin",
+      "expo-web-browser"
+    ]
   }
 }
