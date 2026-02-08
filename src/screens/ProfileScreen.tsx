@@ -4,7 +4,8 @@ import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { Settings, Share2, Bell, Globe, Star, MessageCircle, ChevronRight, X, Crown, Database, PlayCircle, Check, BarChart3, Users } from 'lucide-react-native';
-import AnalyticsModal from '../components/AnalyticsModal';
+import { LinearGradient } from 'expo-linear-gradient';
+
 import { useHabitStore } from '../store/useHabitStore';
 import Heatmap from '../components/Heatmap';
 import NotificationManager from '../components/NotificationManager';
@@ -28,7 +29,7 @@ export default function ProfileScreen() {
     const [settingsModalVisible, setSettingsModalVisible] = useState(false);
     const [editType, setEditType] = useState<'name' | 'username' | 'avatar'>('name');
     const [editValue, setEditValue] = useState('');
-    const [analyticsVisible, setAnalyticsVisible] = useState(false);
+
     const [notificationsVisible, setNotificationsVisible] = useState(false);
 
     const [languageModalVisible, setLanguageModalVisible] = useState(false);
@@ -67,7 +68,7 @@ export default function ProfileScreen() {
     };
 
     const handleOpenAnalytics = () => {
-        setAnalyticsVisible(true);
+        (navigation as any).navigate('Analytics');
     };
 
     return (
@@ -116,9 +117,36 @@ export default function ProfileScreen() {
                     <View style={styles.divider} />
                 </View>
 
+                {/* Premium Banner */}
+                <TouchableOpacity onPress={() => Alert.alert("Coming Soon", "HabitRat Ultimate features are on the way!")} activeOpacity={0.9}>
+                    <LinearGradient
+                        colors={['#FFD700', '#FF8C00']} // Gold to Dark Orange
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.premiumBanner}
+                    >
+                        {/* Background Pattern Icons */}
+                        <Crown size={80} color="white" opacity={0.2} style={{ position: 'absolute', right: -20, top: -20, transform: [{ rotate: '15deg' }] }} />
+                        <Star size={40} color="white" opacity={0.2} style={{ position: 'absolute', left: 20, bottom: -10 }} />
 
 
-                {/* Account Section */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <View style={{
+                                backgroundColor: 'rgba(255,255,255,0.2)',
+                                padding: 8,
+                                borderRadius: 12,
+                                marginRight: 12
+                            }}>
+                                <Crown size={24} color="white" fill="white" />
+                            </View>
+                            <View>
+                                <Text style={styles.premiumTitle}>HabitRat Ultimate</Text>
+                                <Text style={styles.premiumSubtitle}>Unlock all premium features</Text>
+                            </View>
+                        </View>
+                        <ChevronRight size={24} color="white" />
+                    </LinearGradient>
+                </TouchableOpacity>
                 <Text style={styles.sectionHeader}>{t('section.account')}</Text>
                 <View style={styles.card}>
                     <SettingsItem
@@ -186,7 +214,7 @@ export default function ProfileScreen() {
             </ScrollView>
 
             {/* Modals */}
-            <AnalyticsModal visible={analyticsVisible} onClose={() => setAnalyticsVisible(false)} />
+
             <NotificationManager visible={notificationsVisible} onClose={() => setNotificationsVisible(false)} />
             <RateAppModal visible={rateModalVisible} onClose={() => setRateModalVisible(false)} />
 
@@ -518,6 +546,34 @@ const styles = StyleSheet.create({
         marginHorizontal: -16, // Extend to edges
     },
     // End New Styles
+    // End New Styles
+    premiumBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 20,
+        paddingHorizontal: 20,
+        marginHorizontal: theme.spacing.m,
+        marginBottom: theme.spacing.m,
+        borderRadius: 20,
+        shadowColor: "#FF8C00",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 6,
+        overflow: 'hidden', // Contain the absolute icons
+    },
+    premiumTitle: {
+        fontSize: 18,
+        fontWeight: '900', // Extra bold
+        color: 'white',
+        letterSpacing: 0.5,
+    },
+    premiumSubtitle: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.9)',
+        fontWeight: '500',
+    },
     menuItem: {
         flexDirection: 'row',
         alignItems: 'center',

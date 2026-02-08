@@ -29,41 +29,23 @@ export interface ReminderConfig {
     enabled: boolean;
 }
 
+export interface LogMetadata {
+    completionTime?: string; // ISO timestamp
+    failureReason?: string;
+    mood?: 'happy' | 'neutral' | 'stressed' | 'tired';
+}
+
+export type LogValue = boolean | (LogMetadata & { completed: boolean });
+
 export interface Logs {
     [date: string]: {
-        [habitId: string]: boolean;
+        [habitId: string]: LogValue;
     };
 }
 
-export interface Message {
-    id: string;
-    text: string;
-    senderId: string; // 'me' or 'other'
-    timestamp: string;
-}
 
-export interface Chat {
-    id: string;
-    name: string;
-    avatar: string;
-    messages: Message[];
-    unreadCount: number;
-}
 
-export interface Challenge {
-    id: string;
-    title: string;
-    description: string;
-    participants: number;
-    type: 'friend' | 'worldwide' | 'event';
-    duration: string;
-    joined: boolean;
-    host: string;
-    avatar: string;
-    communityTag?: string;
-    start_date?: string;
-    end_date?: string;
-}
+
 
 interface HabitState {
     habits: Habit[];
@@ -93,13 +75,17 @@ interface HabitState {
     createNewLog: (date: Date | string | number) => void;
     removeHabit: (id: string) => Promise<void>;
     toggleHabit: (date: string, habitId: string) => Promise<void>;
+    logFailure: (date: string | Date, habitId: string, reason: string) => void;
 
     // Statistics & Analytics
     getCurrentStreak: () => number;
     getBestStreak: () => number;
     getTotalCompletions: () => number;
+    getMonthlyTotalCompletions: (date: Date) => number;
+    getYearlyTotalCompletions: (year: number) => number;
     getOverallSuccessRate: () => number;
     getMonthlySuccessRate: (date: Date) => number;
+    getYearlySuccessRate: (year: number) => number;
     getDailyCompletionStats: (days_count: number) => number[];
     getCompletionPercentage: (date: Date) => number;
     getHabitConsistency: (habitId: string) => number;
@@ -126,35 +112,25 @@ interface HabitState {
     followUser: (targetUserId: string) => Promise<boolean>;
     unfollowUser: (targetUserId: string) => Promise<boolean>;
 
-    // Challenges
-    challenges: Challenge[];
-    fetchChallenges: () => Promise<void>;
-    joinChallenge: (challengeId: string) => Promise<boolean>;
-    createChallenge: (challenge: Omit<Challenge, 'id' | 'participants' | 'joined' | 'host' | 'avatar'>) => Promise<boolean>;
+
 
     // Reminders
     reminders: Record<string, ReminderConfig[]>;
     notificationSettings: {
+        notificationsEnabled: boolean;
         smartReminders: boolean;
         quietHoursStart: string;
         quietHoursEnd: string;
+        focusMode: boolean;
     };
     addReminder: (habitId: string, reminder: Omit<ReminderConfig, 'id'>) => void;
     removeReminder: (habitId: string, reminderId: string) => void;
     updateReminder: (habitId: string, reminder: ReminderConfig) => void;
     toggleSmartReminders: () => void;
+    updateNotificationSettings: (settings: Partial<{ notificationsEnabled: boolean; smartReminders: boolean; quietHoursStart: string; quietHoursEnd: string; focusMode: boolean }>) => void;
 
-    // Chat System
-    chats: Chat[];
-    fetchChats: () => Promise<void>;
-    fetchMessages: (friendId: string) => Promise<void>;
-    sendMessage: (friendId: string, text: string) => Promise<void>;
-    subscribeToMessages: () => void;
-    // Legacy/UI helpers
-    addChat: (friend: { id: string, name: string, avatar: string }) => void;
-    receiveMessage: (chatId: string, text: string) => void;
-    markChatRead: (chatId: string) => void;
 }
+
 
 const DEFAULT_HABITS: Habit[] = [
     { id: '1', name: 'Academic Study', target: '3 hours', icon: '📚' },
@@ -202,9 +178,11 @@ export const useHabitStore = create<HabitState>()(
             // Reminders Init
             reminders: {},
             notificationSettings: {
+                notificationsEnabled: true,
                 smartReminders: false,
                 quietHoursStart: '22:00',
-                quietHoursEnd: '07:00'
+                quietHoursEnd: '07:00',
+                focusMode: false
             },
 
             // Language
@@ -227,51 +205,13 @@ export const useHabitStore = create<HabitState>()(
                     isAuthenticated: true, // Keep authenticated since no login
                     habits: DEFAULT_HABITS,
                     logs: {},
-                    chats: [],
+
                     user: DEFAULT_USER
                 });
             },
 
             // --- Messaging (Local Only) ---
-            chats: [],
 
-            fetchChats: async () => {
-                // Local only - return current state
-            },
-
-            fetchMessages: async (friendId) => {
-                // Local only - messages already in state
-            },
-
-            sendMessage: async (friendId, text) => {
-                const optimisticMsg: Message = {
-                    id: Date.now().toString(),
-                    text,
-                    senderId: 'me',
-                    timestamp: new Date().toISOString()
-                };
-
-                set(state => ({
-                    chats: state.chats.map(c => c.id === friendId ? { ...c, messages: [optimisticMsg, ...c.messages] } : c)
-                }));
-            },
-
-            subscribeToMessages: () => {
-                // No-op - local only
-            },
-
-            addChat: (friend) => {
-                set(state => {
-                    if (state.chats.find(c => c.id === friend.id)) return state;
-                    return { chats: [{ ...friend, messages: [], unreadCount: 0 }, ...state.chats] };
-                });
-            },
-            receiveMessage: () => { },
-            markChatRead: (chatId: string) => set((state) => ({
-                chats: state.chats.map(chat =>
-                    chat.id === chatId ? { ...chat, unreadCount: 0 } : chat
-                )
-            })),
 
             setPremium: (status) => {
                 set({ isPremium: status });
@@ -369,15 +309,51 @@ export const useHabitStore = create<HabitState>()(
                 const { logs } = get();
 
                 const dayLog = logs[dateKey] || {};
-                const newStatus = !dayLog[habitId];
+                const current = dayLog[habitId];
+
+                // Handle mixed types (boolean vs object)
+                const isCompleted = typeof current === 'object' ? current.completed : !!current;
+                const newStatus = !isCompleted;
+
+                let newValue: LogValue = newStatus;
+
+                // If turning ON, add timestamp
+                if (newStatus) {
+                    newValue = {
+                        completed: true,
+                        completionTime: new Date().toISOString(),
+                        ...(typeof current === 'object' ? current : {})
+                    };
+                } else if (typeof current === 'object') {
+                    newValue = { ...current, completed: false };
+                }
 
                 set((state) => ({
                     logs: {
                         ...state.logs,
-                        [dateKey]: { ...dayLog, [habitId]: newStatus }
+                        [dateKey]: { ...dayLog, [habitId]: newValue }
                     }
                 }));
                 get().checkStreak();
+            },
+
+            logFailure: (date, habitId, reason) => {
+                const dateKey = typeof date === 'string' ? date : format(date, 'yyyy-MM-dd');
+                set(state => {
+                    const dayLog = state.logs[dateKey] || {};
+                    const current = dayLog[habitId];
+                    const base = typeof current === 'object' ? current : { completed: !!current };
+
+                    return {
+                        logs: {
+                            ...state.logs,
+                            [dateKey]: {
+                                ...dayLog,
+                                [habitId]: { ...base, completed: false, failureReason: reason }
+                            }
+                        }
+                    };
+                });
             },
 
             addReminder: (habitId, reminder) => set((state) => {
@@ -426,58 +402,13 @@ export const useHabitStore = create<HabitState>()(
                 }
             })),
 
-            challenges: [],
+            updateNotificationSettings: (settings) => set((state) => ({
+                notificationSettings: { ...state.notificationSettings, ...settings }
+            })),
 
-            fetchChallenges: async () => {
-                // Local mock challenges
-                const mockChallenges: Challenge[] = [
-                    {
-                        id: '1',
-                        title: '30-Day Reading Challenge',
-                        description: 'Read for at least 30 minutes every day',
-                        participants: 1250,
-                        type: 'worldwide',
-                        duration: '30 Days',
-                        joined: false,
-                        host: 'HabitRat Team',
-                        avatar: 'https://via.placeholder.com/50'
-                    },
-                    {
-                        id: '2',
-                        title: 'Fitness February',
-                        description: 'Exercise daily throughout February',
-                        participants: 890,
-                        type: 'event',
-                        duration: '28 Days',
-                        joined: false,
-                        host: 'Community',
-                        avatar: 'https://via.placeholder.com/50'
-                    }
-                ];
-                set({ challenges: mockChallenges });
-            },
 
-            joinChallenge: async (challengeId) => {
-                set(state => ({
-                    challenges: state.challenges.map(c =>
-                        c.id === challengeId ? { ...c, joined: true, participants: c.participants + 1 } : c
-                    )
-                }));
-                return true;
-            },
 
-            createChallenge: async (challenge) => {
-                const newChallenge: Challenge = {
-                    ...challenge,
-                    id: Date.now().toString(),
-                    participants: 1,
-                    joined: true,
-                    host: get().user.name,
-                    avatar: get().user.avatar
-                };
-                set(state => ({ challenges: [newChallenge, ...state.challenges] }));
-                return true;
-            },
+
 
             getHabitStatus: (date, habitId) => {
                 const dateKey = typeof date === 'string' ? date : format(date, 'yyyy-MM-dd');
@@ -520,18 +451,72 @@ export const useHabitStore = create<HabitState>()(
                 let total = 0;
                 Object.values(logs).forEach(dayLog => {
                     Object.values(dayLog).forEach(status => {
-                        if (status) total++;
+                        if (typeof status === 'object' ? status.completed : !!status) total++;
                     });
                 });
                 return total;
+            },
+
+            getMonthlyTotalCompletions: (date) => {
+                const { logs } = get();
+                const monthStr = format(date, 'yyyy-MM');
+                let total = 0;
+                Object.keys(logs).forEach(dateKey => {
+                    if (dateKey.startsWith(monthStr)) {
+                        Object.values(logs[dateKey]).forEach(status => {
+                            if (typeof status === 'object' ? status.completed : !!status) total++;
+                        });
+                    }
+                });
+                return total;
+            },
+
+            getYearlyTotalCompletions: (year) => {
+                const { logs } = get();
+                const yearStr = year.toString();
+                let total = 0;
+                Object.keys(logs).forEach(dateKey => {
+                    if (dateKey.startsWith(yearStr)) {
+                        Object.values(logs[dateKey]).forEach(status => {
+                            if (typeof status === 'object' ? status.completed : !!status) total++;
+                        });
+                    }
+                });
+                return total;
+            },
+
+
+
+            getYearlySuccessRate: (year) => {
+                const { habits, logs } = get();
+                if (habits.length === 0) return 0;
+
+                let totalExpected = 0;
+                let totalCompleted = 0;
+
+                // Iterate through every day of the year? 
+                // Or just iterate logs? 
+                // Success rate implies (Completed / Expected).
+                // Expected = 365 * habits.count (simplified). 
+                // Better: Iterate from Jan 1 to Dec 31 (or today if current year).
+
+                const start = new Date(year, 0, 1);
+                const end = year === new Date().getFullYear() ? new Date() : new Date(year, 11, 31);
+
+                // This loop is expensive. 
+                // Alternative: total logs in year / (habits * days_elapsed).
+                const daysElapsed = differenceInCalendarDays(end, start) + 1;
+                totalExpected = daysElapsed * habits.length;
+
+                totalCompleted = get().getYearlyTotalCompletions(year);
+
+                return totalExpected === 0 ? 0 : Math.round((totalCompleted / totalExpected) * 100);
             },
 
             getOverallSuccessRate: () => {
                 const { habits, logs } = get();
                 if (habits.length === 0) return 0;
 
-                // Count days since user joined? Or days since first log?
-                // Let's use last 30 days for relevance
                 const today = new Date();
                 let totalOpportunities = 0;
                 let totalCompleted = 0;
@@ -543,18 +528,30 @@ export const useHabitStore = create<HabitState>()(
 
                     totalOpportunities += habits.length;
                     habits.forEach(h => {
-                        if (dayLog[h.id]) totalCompleted++;
+                        const status = dayLog[h.id];
+                        if (typeof status === 'object' ? status.completed : !!status) totalCompleted++;
                     });
                 }
 
-                const rate = totalOpportunities === 0 ? 0 : (totalCompleted / totalOpportunities) * 100;
-                return Math.round(rate * 100) / 100;
+                return totalOpportunities === 0 ? 0 : Math.round((totalCompleted / totalOpportunities) * 100);
             },
 
             getMonthlySuccessRate: (date) => {
-                // Return percentage for specific month
-                const rate = get().getOverallSuccessRate(); // Placeholder for specific month logic if needed
-                return Math.round(rate * 100) / 100;
+                const { habits } = get();
+                if (habits.length === 0) return 0;
+
+                const totalCompleted = get().getMonthlyTotalCompletions(date);
+
+                const now = new Date();
+                let daysToCount = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+
+                // If it's the current month, only count days up to today to avoid artificially low rate
+                if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+                    daysToCount = now.getDate();
+                }
+
+                const totalExpected = daysToCount * habits.length;
+                return totalExpected === 0 ? 0 : Math.round((totalCompleted / totalExpected) * 100);
             },
 
             getDailyCompletionStats: (days_count = 7) => {

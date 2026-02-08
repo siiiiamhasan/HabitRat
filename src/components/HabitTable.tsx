@@ -78,9 +78,20 @@ export default function HabitTable() {
 
             if (completedCount === 1) {
                 Alert.alert(
-                    "Wait!",
-                    "Unchecking this will break your streak! Complete another habit first to keep your streak safe.",
-                    [{ text: "OK" }],
+                    "Warning!",
+                    "Unchecking this will clear your progress for today and break your streak. Are you sure?",
+                    [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                            text: "Uncheck",
+                            style: 'destructive',
+                            onPress: () => {
+                                toggleHabit(dateString, habitId);
+                                // Re-check streak immediately to update UI
+                                setTimeout(() => checkStreak(), 100);
+                            }
+                        }
+                    ],
                     { cancelable: true }
                 );
                 return;

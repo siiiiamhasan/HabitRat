@@ -1,16 +1,15 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Home, Users, MessageSquare, User } from 'lucide-react-native';
+import { Home, Users, MessageSquare, User, BarChart3 } from 'lucide-react-native';
 import HomeScreen from '../screens/HomeScreen';
-import SocialScreen from '../screens/SocialScreen';
-import InboxScreen from '../screens/InboxScreen';
+import AnalyticsScreen from '../screens/AnalyticsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { theme } from '../constants/theme';
 
 export type BottomTabParamList = {
     Home: undefined;
-    Social: undefined;
-    Inbox: undefined;
+
+    Analytics: undefined;
     Profile: undefined;
 };
 
@@ -42,19 +41,11 @@ export default function BottomTabNavigator() {
                 }}
             />
             <Tab.Screen
-                name="Social"
-                component={SocialScreen}
+                name="Analytics"
+                component={AnalyticsScreen}
                 options={{
-                    tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
-                    tabBarLabel: 'Social'
-                }}
-            />
-            <Tab.Screen
-                name="Inbox"
-                component={InboxScreen}
-                options={{
-                    tabBarIcon: ({ color, size }) => <MessageSquare color={color} size={size} />,
-                    tabBarLabel: 'Inbox'
+                    tabBarIcon: ({ color, size }) => <BarChart3 color={color} size={size} />,
+                    tabBarLabel: 'Analytics'
                 }}
             />
             <Tab.Screen

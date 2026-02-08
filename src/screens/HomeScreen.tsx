@@ -56,8 +56,8 @@ export default function HomeScreen() {
 
     return (
         <SafeAreaView style={styles.safeArea} edges={['top']}>
-            <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-                {/* Header */}
+            {/* Fixed Header - Clean Style */}
+            <View style={styles.fixedHeaderContainer}>
                 <View style={styles.header}>
                     <TouchableOpacity style={styles.headerLeft} onPress={() => navigation.navigate('Profile')}>
                         <Image
@@ -80,12 +80,14 @@ export default function HomeScreen() {
                         </View>
                     </View>
                 </View>
+            </View>
 
+            <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
                 {/* Heatmap */}
                 <Heatmap />
 
                 {/* Target Section */}
-                <View style={styles.section}>
+                <View style={[styles.section, { marginBottom: 14 }]}>
                     <Text style={styles.sectionTitle}>Targets</Text>
                     {habits.length === 0 ? (
                         <Text style={styles.emptyText}>No habits set yet. Add one below!</Text>
@@ -118,13 +120,22 @@ const styles = StyleSheet.create({
     },
     container: {
         padding: theme.spacing.m,
+        paddingTop: 8, // Reduced since header is outside
         paddingBottom: 90, // Space for bottom tab
+    },
+    fixedHeaderContainer: {
+        backgroundColor: theme.colors.background, // Match screen bg so content scrolls behind invisibly
+        paddingHorizontal: theme.spacing.m,
+        paddingTop: theme.spacing.s,
+        paddingBottom: theme.spacing.s,
+        zIndex: 10,
+        // No styling (border/shadow) as requested
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: theme.spacing.l,
+        // Removed margin since it's in a fixed container now
     },
     headerLeft: {
         flexDirection: 'row',

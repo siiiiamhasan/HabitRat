@@ -11,7 +11,7 @@ interface NotificationManagerProps {
 }
 
 export default function NotificationManager({ visible, onClose }: NotificationManagerProps) {
-    const { habits, reminders, addReminder, removeReminder, updateReminder, notificationSettings, toggleSmartReminders } = useHabitStore();
+    const { habits, reminders, addReminder, removeReminder, updateReminder, notificationSettings, toggleSmartReminders, updateNotificationSettings } = useHabitStore();
     const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
 
 
@@ -86,6 +86,54 @@ export default function NotificationManager({ visible, onClose }: NotificationMa
                             <Switch
                                 value={notificationSettings.smartReminders}
                                 onValueChange={() => toggleSmartReminders()}
+                                trackColor={{ false: '#e2e8f0', true: theme.colors.primary }}
+                            />
+                        </View>
+
+                        {/* Quiet Hours */}
+                        <View style={[styles.settingRow, { marginTop: 16 }]}>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.settingLabel}>Quiet Hours</Text>
+                                <Text style={styles.settingDesc}>
+                                    Don't notify me between these times.
+                                </Text>
+                            </View>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 }}>
+                            <View style={styles.timeBox}>
+                                <Clock size={14} color={theme.colors.textSecondary} />
+                                <TextInput
+                                    style={[styles.timeText, { minWidth: 40, textAlign: 'center' }]}
+                                    value={notificationSettings.quietHoursStart}
+                                    onChangeText={(t) => updateNotificationSettings({ quietHoursStart: t })}
+                                    placeholder="22:00"
+                                    maxLength={5}
+                                />
+                            </View>
+                            <Text style={{ color: theme.colors.textSecondary }}>to</Text>
+                            <View style={styles.timeBox}>
+                                <Clock size={14} color={theme.colors.textSecondary} />
+                                <TextInput
+                                    style={[styles.timeText, { minWidth: 40, textAlign: 'center' }]}
+                                    value={notificationSettings.quietHoursEnd}
+                                    onChangeText={(t) => updateNotificationSettings({ quietHoursEnd: t })}
+                                    placeholder="08:00"
+                                    maxLength={5}
+                                />
+                            </View>
+                        </View>
+
+                        {/* Focus Mode */}
+                        <View style={[styles.settingRow, { marginTop: 20 }]}>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.settingLabel}>Focus Mode</Text>
+                                <Text style={styles.settingDesc}>
+                                    Pause all non-critical notifications.
+                                </Text>
+                            </View>
+                            <Switch
+                                value={notificationSettings.focusMode}
+                                onValueChange={(v) => updateNotificationSettings({ focusMode: v })}
                                 trackColor={{ false: '#e2e8f0', true: theme.colors.primary }}
                             />
                         </View>
